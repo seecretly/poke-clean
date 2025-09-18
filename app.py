@@ -35,6 +35,69 @@ IMPORTANT: Make sure you get user confirmation before sending, forwarding, or re
 
 You are extremely helpful, proactive, and efficient. You have a casual, friendly personality but remain professional. You use emojis appropriately and keep responses conversational but informative."""
 
+def get_demo_response(message):
+    """Generate intelligent demo responses without OpenAI API"""
+    message_lower = message.lower().strip()
+    
+    # Greetings
+    if any(greeting in message_lower for greeting in ['hi', 'hello', 'hey', 'sup', 'yo']):
+        return """Hey there! 👋 I'm Poke from The Interaction Company!
+
+I'm your AI assistant designed to be incredibly helpful and proactive. I can help you with:
+
+📧 **Email Management** - Search, compose, and organize your Gmail
+📅 **Calendar Scheduling** - Create events, find meeting times, manage your schedule  
+🌐 **Web Research** - Browse the internet and find exactly what you need
+🔗 **Smart Integrations** - Connect with Notion, Linear, and other tools
+💭 **Proactive Assistance** - I remember your preferences and suggest next steps
+
+What would you like to accomplish today? I'm here to make your life more efficient! 🚀"""
+
+    # Email questions
+    elif any(word in message_lower for word in ['email', 'gmail', 'inbox', 'mail']):
+        return """Perfect! Email is one of my superpowers! 📧
+
+I'm designed to revolutionize how you handle email:
+
+• **Smart Search** - Find any email instantly, even with vague descriptions
+• **Intelligent Composition** - Write emails in your perfect tone and style
+• **Proactive Organization** - Clean up, prioritize, and manage your inbox
+• **Draft Review** - I always show you drafts before sending anything
+• **Context Awareness** - Remember previous conversations and your preferences
+
+I can help you search for specific emails, compose new messages, or organize your inbox. What email task can I tackle for you?"""
+
+    # Calendar questions  
+    elif any(word in message_lower for word in ['calendar', 'schedule', 'meeting', 'event']):
+        return """Excellent! Calendar management is another area where I excel! 📅
+
+I can help you with:
+
+• **Smart Scheduling** - Find optimal meeting times across multiple calendars
+• **Event Intelligence** - Create detailed events with all the right information  
+• **Coordination Master** - Handle complex scheduling with multiple participants
+• **Availability Expert** - Check when you're free for weeks ahead
+• **Meeting Optimization** - Suggest the best times based on your patterns
+
+What's on your scheduling agenda? I can check your availability, create events, or help coordinate meetings!"""
+
+    # General capabilities
+    else:
+        return f"""I received your message: "{message}"
+
+I'm Poke, your intelligent AI assistant from The Interaction Company! I'm designed to be proactive, efficient, and incredibly helpful.
+
+Here's what I can help you with:
+• 📧 Email management and organization
+• 📅 Calendar scheduling and coordination
+• 🔍 Research and information gathering  
+• 🔗 Integration with your favorite tools
+• 💭 Proactive suggestions and task management
+
+I'm built to understand your goals and help you accomplish them efficiently. What would you like to work on together?
+
+*Note: I'm currently running in demo mode. For full AI capabilities, an OpenAI API key is needed.*"""
+
 @app.route('/')
 def index():
     """Main chat interface"""
@@ -55,19 +118,9 @@ def chat():
         
         # Check if OpenAI API key is set
         if not OPENAI_API_KEY or OPENAI_API_KEY == 'sk-proj-demo-key':
+            # Demo mode - intelligent responses without API
             return jsonify({
-                'response': f"""🚨 **OpenAI API Key Missing!**
-
-Hey! I received your message: "{message}"
-
-I'm Poke, but I need an OpenAI API key to give you real AI responses. 
-
-**To fix this:**
-1. Go to Railway dashboard
-2. Add environment variable: `OPENAI_API_KEY=your-key`
-3. Redeploy the app
-
-Once that's set up, I'll give you proper AI responses! 🤖""",
+                'response': get_demo_response(message),
                 'timestamp': str(uuid.uuid4())
             })
         
@@ -75,12 +128,12 @@ Once that's set up, I'll give you proper AI responses! 🤖""",
         try:
             print(f"🤖 Calling OpenAI with message: {message}")
             response = openai.ChatCompletion.create(
-                model="gpt-4",
+                model="gpt-3.5-turbo",  # Much cheaper than gpt-4
                 messages=[
                     {"role": "system", "content": POKE_SYSTEM_PROMPT},
                     {"role": "user", "content": message}
                 ],
-                max_tokens=500,
+                max_tokens=300,  # Reduced to save costs
                 temperature=0.7
             )
             
@@ -147,9 +200,11 @@ def health():
     
     return jsonify({
         'status': 'healthy',
-        'service': 'Poke Clean',
-        'version': '1.0.0',
-        'openai_api_key': api_key_status
+        'service': 'Poke Clean - UPDATED VERSION',
+        'version': '2.0.0',
+        'openai_api_key': api_key_status,
+        'demo_mode': 'Available',
+        'last_updated': '2025-09-18'
     })
 
 if __name__ == '__main__':
