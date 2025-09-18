@@ -1,1 +1,285 @@
-templates/chat.html
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Poke - AI Assistant</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #000;
+            color: #fff;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .header {
+            background: #1a1a1a;
+            padding: 15px 20px;
+            border-bottom: 1px solid #333;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 18px;
+            font-weight: 600;
+        }
+
+        .chat-container {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            max-width: 600px;
+            margin: 0 auto;
+            width: 100%;
+            background: #000;
+        }
+
+        .messages {
+            flex: 1;
+            padding: 20px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .message {
+            max-width: 80%;
+            padding: 12px 16px;
+            border-radius: 18px;
+            word-wrap: break-word;
+            line-height: 1.4;
+        }
+
+        .message.user {
+            background: #007AFF;
+            color: white;
+            align-self: flex-end;
+            border-bottom-right-radius: 4px;
+        }
+
+        .message.poke {
+            background: #1a1a1a;
+            color: #fff;
+            align-self: flex-start;
+            border: 1px solid #333;
+            border-bottom-left-radius: 4px;
+        }
+
+        .input-container {
+            padding: 15px 20px;
+            background: #1a1a1a;
+            border-top: 1px solid #333;
+        }
+
+        .input-wrapper {
+            display: flex;
+            gap: 10px;
+            align-items: flex-end;
+        }
+
+        .message-input {
+            flex: 1;
+            background: #2a2a2a;
+            border: 1px solid #444;
+            border-radius: 20px;
+            padding: 12px 16px;
+            color: #fff;
+            font-size: 16px;
+            resize: none;
+            min-height: 20px;
+            max-height: 100px;
+            font-family: inherit;
+        }
+
+        .message-input:focus {
+            outline: none;
+            border-color: #007AFF;
+        }
+
+        .send-button {
+            background: #007AFF;
+            border: none;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            color: white;
+            font-size: 18px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .send-button:hover {
+            background: #0056CC;
+        }
+
+        .send-button:disabled {
+            background: #444;
+            cursor: not-allowed;
+        }
+
+        .typing-indicator {
+            display: none;
+            align-self: flex-start;
+            background: #1a1a1a;
+            border: 1px solid #333;
+            border-radius: 18px;
+            border-bottom-left-radius: 4px;
+            padding: 12px 16px;
+            color: #888;
+            font-style: italic;
+        }
+
+        .typing-indicator.show {
+            display: block;
+        }
+
+        .welcome-message {
+            text-align: center;
+            color: #888;
+            font-size: 14px;
+            margin: 20px 0;
+        }
+
+        .url-link {
+            color: #007AFF;
+            text-decoration: none;
+        }
+
+        .url-link:hover {
+            text-decoration: underline;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>🧠 Poke - AI Assistant</h1>
+    </div>
+
+    <div class="chat-container">
+        <div class="messages" id="messages">
+            <div class="welcome-message">
+                👋 Hey! I'm Poke from The Interaction Company. I'm here to help you with email, calendar, research, and more. What can I do for you today?
+            </div>
+        </div>
+
+        <div class="typing-indicator" id="typingIndicator">
+            Poke is typing...
+        </div>
+
+        <div class="input-container">
+            <div class="input-wrapper">
+                <textarea 
+                    id="messageInput" 
+                    class="message-input" 
+                    placeholder="Message Poke..."
+                    rows="1"
+                ></textarea>
+                <button id="sendButton" class="send-button" disabled>
+                    ➤
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const messagesContainer = document.getElementById('messages');
+        const messageInput = document.getElementById('messageInput');
+        const sendButton = document.getElementById('sendButton');
+        const typingIndicator = document.getElementById('typingIndicator');
+
+        // Auto-resize textarea
+        messageInput.addEventListener('input', function() {
+            this.style.height = 'auto';
+            this.style.height = Math.min(this.scrollHeight, 100) + 'px';
+            
+            // Enable/disable send button
+            sendButton.disabled = this.value.trim() === '';
+        });
+
+        // Send message on Enter (but allow Shift+Enter for new lines)
+        messageInput.addEventListener('keydown', function(e) {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                sendMessage();
+            }
+        });
+
+        // Send button click
+        sendButton.addEventListener('click', sendMessage);
+
+        function sendMessage() {
+            const message = messageInput.value.trim();
+            if (!message) return;
+
+            // Add user message to chat
+            addMessage(message, 'user');
+            
+            // Clear input and disable send button
+            messageInput.value = '';
+            messageInput.style.height = 'auto';
+            sendButton.disabled = true;
+
+            // Show typing indicator
+            showTypingIndicator();
+
+            // Send to backend
+            fetch('/chat', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ message: message })
+            })
+            .then(response => response.json())
+            .then(data => {
+                hideTypingIndicator();
+                if (data.response) {
+                    addMessage(data.response, 'poke');
+                } else {
+                    addMessage('Sorry, something went wrong. Please try again.', 'poke');
+                }
+            })
+            .catch(error => {
+                hideTypingIndicator();
+                console.error('Error:', error);
+                addMessage('Sorry, I encountered an error. Please try again.', 'poke');
+            });
+        }
+
+        function addMessage(text, sender) {
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `message ${sender}`;
+            
+            // Make URLs clickable
+            const processedText = text.replace(/(https?:\/\/[^\s]+)/g, '<a href="$1" class="url-link" target="_blank">$1</a>');
+            messageDiv.innerHTML = processedText;
+            
+            messagesContainer.appendChild(messageDiv);
+            messagesContainer.scrollTop = messagesContainer.scrollHeight;
+        }
+
+        function showTypingIndicator() {
+            typingIndicator.classList.add('show');
+            messagesContainer.scrollTop = messagesContainer.scrollHeight;
+        }
+
+        function hideTypingIndicator() {
+            typingIndicator.classList.remove('show');
+        }
+
+        // Focus input on load
+        messageInput.focus();
+    </script>
+</body>
+</html>
